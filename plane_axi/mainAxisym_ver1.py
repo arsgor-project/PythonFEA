@@ -85,6 +85,7 @@ def formStiffnessAxisymmetric2D(GDof,numberElements, QuadElementNodesIds, number
         # степени свободы текущего элемента
         elementDof = np.concatenate((indice,  indice+numberNodes), axis=0)
         #print(elementDof)
+        
         ndof = indice.size # количество узлов в элементе
         r = nodeCoords[indice][:,0]
         #print(r)
