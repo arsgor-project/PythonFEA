@@ -1,0 +1,8 @@
+
+1. вывод напряжений
+2. другие элементы?
+3. структура программы?
+
+
+1. uniform pressure on spherical shell test +
+2. cylindrical shell bending

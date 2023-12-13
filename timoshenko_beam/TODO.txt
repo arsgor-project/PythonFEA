@@ -1,0 +1,4 @@
+Linear Elements with reduced integration to avoid shearlocking
+
+PointLoad
+PointMoment
