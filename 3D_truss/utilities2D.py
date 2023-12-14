@@ -12,12 +12,10 @@ def extractNodeIdsFromCells( CellNodes ):
     NodesIdsUnique = list(set(NodeIds))
     return NodesIdsUnique
 
-
 def shapeFunctionL2(xi):
     my_shape = np.array([[(1-xi)/2,(1+xi)/2 ]])
     my_Xderivatives = np.array([[ -1./2 , 1./2 ]])
     return my_shape.T, my_Xderivatives
-
 
 
 def formStiffnessBar2pt(GDof, numberElements, elementNodes, numberNodes, nodeCoordinates, xx,EA,P):
@@ -87,12 +85,13 @@ def solution(GDof, prescribedDof, pointLoad,  stiffness, force):
   
   
   # check for zero rows
+  '''
   for i in range(GDof):
     is_all_zero = np.all((stiffness[i,:] == 0))
     if is_all_zero:
        stiffness[i,i] = 1
        force[i] = 0
-
+  '''
   #print(force)
   #print(stiffness)
   start = time.time()
