@@ -41,7 +41,7 @@ for index,i in enumerate(elems):
 # GEOMETRY + MESH READING
 # Читаем сетку в vtk формате, внимательно следим за номерами, которые присвоены физическим группам (по умолчанию -1)
 dirname = os.path.dirname(__file__)
-mesh = meshio.read(os.path.join(dirname, 'mesh/2el_test.vtk'))   # string, os.PathLike, or a buffer/open file)
+mesh = meshio.read(os.path.join(dirname, 'mesh/HyperTower2.vtk'))   # string, os.PathLike, or a buffer/open file)
 
 xx = mesh.points[: , 0]
 yy = mesh.points[: , 1]
@@ -69,11 +69,12 @@ LoadCellsIds  = []
 LoadPointsCellsIds = []
 LineLoadElements = []
 # Идём по элементам типа line3 и выбираем те, значение которых равно нужным нам иднексам физическиз групп
+'''
 for i in range( len(mesh.cell_data_dict['CellEntityIds']['line']) ):
     if mesh.cell_data_dict['CellEntityIds']['line'][i] == 1: #!!! 
         LoadCellsIds.append(i)
         LineLoadElements.append(LineElementNodesIds[i])
-
+'''
 
 for i in range( len(VertexCellData ) ):
     if VertexCellData [i] == 2: #!!! 
@@ -87,7 +88,7 @@ for i in range( len(VertexCellData ) ):
 LeftNodeIds  = np.array(utilities.extractNodeIdsFromCells(VertexElementNodesIds[LeftCellsIds])) 
 RightNodeIds = np.array(utilities.extractNodeIdsFromCells(VertexElementNodesIds[RightCellsIds]))
 LoadPointsIds = np.array(utilities.extractNodeIdsFromCells(VertexElementNodesIds[LoadPointsCellsIds]))
-LoadNodeIds =  np.array(utilities.extractNodeIdsFromCells(LineElementNodesIds[LoadCellsIds])) 
+#LoadNodeIds =  np.array(utilities.extractNodeIdsFromCells(LineElementNodesIds[LoadCellsIds])) 
 
 bcs = [LeftNodeIds]
 loads = [LoadPointsIds]
@@ -95,7 +96,7 @@ loads = [LoadPointsIds]
 print(bcs, loads)
 
 # MATERIAL PARAMETERS
-E = 1; A = 1.; EA = E*A;  Iy = 2; Iz = 2; G = E/(2*(1+0.3)); J = 5; 
+E = 1; A = 1; EA = E*A;  Iy = 1; Iz = 1; G = 0.5; J = 1; 
 mat_data = np.array([E, G, A, Iy, Iz, J])
 stiffness, force = utilities.formStiffness3D_EBbeam_2pt(GDof,numberElements, LineElementNodesIds,numberNodes, nodeCoordinates, mat_data)
 
@@ -108,8 +109,23 @@ prescribedRy1= np.array(LeftNodeIds) + 4*numberNodes
 prescribedRz1= np.array(LeftNodeIds) + 5*numberNodes
 
 prescribedDof = [prescribedUx1, prescribedUy1,   prescribedUz1, prescribedRx1, prescribedRy1, prescribedRz1  ]
-print(prescribedDof)
+#print(prescribedDof)
+
 prescribedPoint1Fz = np.array(LoadPointsIds)  + 2*numberNodes
 pointLoad = [ [prescribedPoint1Fz, 1] ]
 
 displacements = utilities.solution(GDof, prescribedDof, pointLoad, stiffness, force)
+
+
+#print(displacements)
+# SAVE RESULTS
+res_mesh = meshio.Mesh(
+    mesh.points,
+    mesh.cells_dict,
+    # Optionally provide extra data on points, cells, etc.
+    point_data={ "disp": np.array(displacements)[0:3].T, "rot": np.array(displacements)[3:].T}
+)
+
+res_mesh.write(os.path.join(dirname,"results/tower_res.vtk"),  # str, os.PathLike, or buffer/open file
+    # file_format="vtk",  # optional if first argument is a path; inferred from extension
+)
