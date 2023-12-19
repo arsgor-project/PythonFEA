@@ -1,38 +1,36 @@
+import h5py
+import meshio
 import numpy as np
+import os
+
+dirname = os.path.dirname(__file__)
+points = [
+    [0.0, 0.0],
+    [1.0, 0.0],
+    [0.0, 1.0],
+    [1.0, 1.0],
+    [2.0, 0.0],
+    [2.0, 1.0],
+]
+cells = [
+    ("triangle", [[0, 1, 2], [1, 3, 2]]),
+    ("quad", [[1, 4, 5, 3]]),
+]
+
+mesh = meshio.Mesh(
+    points,
+    cells,
+    # Optionally provide extra data on points, cells, etc.
+    point_data={"T": [0.3, -1.2, 0.5, 0.7, 0.0, -3.0]},
+    # Each item in cell data must match the cells array
+    cell_data={"a": [[0.1, 0.2], [0.4]]},
+)
 
 
-E = 1; A = 1; EA = E*A;  Iy = 1; Iz = 1; G = 0.5; J = 1; 
-L = 2
-
-k1 = E*A/L
-k2 = 12*E*Iz/(L*L*L)
-k3 = 6*E*Iz/(L*L)
-k4 = 4*E*Iz/L
-k5 = 2*E*Iz/L
-k6 = 12*E*Iy/L**3
-k7 = 6*E*Iy/L**2
-k8 = 4*E*Iy/L 
-k9 = 2*E*Iy/L 
-k10 = G*J/L
-
-
-# ux, uy, uz, theta_x, fi_y, fi_z
-
-LocalK = np.array( [[k1, -k1, 0, 0,    0,    0,    0, 0,     0, 0,   0, 0], \
-                    [-k1, k1, 0, 0,    0,    0,    0, 0,     0, 0,   0, 0], \
-                    [0, 0,    k2, -k2, 0,    0,    0, 0,     0, 0,   k3, k3], \
-                    [0, 0,   -k2,  k2, 0,    0,    0, 0,     0, 0,  -k3, -k3], \
-                    [0, 0,     0, 0,   k6, -k6,    0, 0,   -k7, -k7, 0, 0], \
-                    [0, 0,     0, 0,  -k6,  k6,    0, 0,    k7, k7,  0, 0], \
-                    [0, 0,     0, 0,    0,   0,  k10, -k10, 0,   0, 0, 0], \
-                    [0, 0,     0, 0,    0,   0, -k10,  k10, 0,   0, 0, 0], \
-                    [0, 0,     0, 0,   - k7,  k7,    0,    0, k8, k9, 0, 0], \
-                    [0, 0,     0, 0,   - k7,  k7,    0,    0, k9, k8, 0, 0], \
-                    [0, 0,    k3, -k3,    0,   0,    0,    0,  0,  0, k4, k5], \
-                    [0, 0,    k3, -k3,    0,   0,    0,    0,  0,  0, k5, k4]  ])
-
-LocalK[[0,2,4,6,8,10],:] = 0
-LocalK[[0,2,4,6,8,10], [0,2,4,6,8,10]]= 1
-cond = np.linalg.cond(LocalK)
-print(LocalK)
-print(cond)
+print(mesh.cells)
+filename = os.path.join(dirname, "results/test_motion.xdmf")
+with meshio.xdmf.TimeSeriesWriter(filename) as writer:
+    writer.write_points_cells(mesh.points,  mesh.cells_dict)
+    
+    for t in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]:
+        writer.write_data(t, point_data={"disp": t*np.array([0.3, -1.2, 0.5, 0.7, 0.0, -3.0])})

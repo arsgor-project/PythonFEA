@@ -1,6 +1,6 @@
 # from MATLAB codes for Finite Element Analysis
 # 2 noded EB beam element
-
+import h5py
 import numpy as np
 import scipy.linalg as LA
 import meshio 
@@ -116,6 +116,22 @@ pointLoad = [ [prescribedPoint1Fz, 1] ]
 
 displacements = utilities.solution(GDof, prescribedDof, pointLoad, stiffness, force)
 
+new_dict = mesh.cells_dict
+new_dict.pop('vertex')
+
+n2_dict = ["vertex", np.array( [  np.array(i) for i in mesh.cells_dict["vertex"] ] ), \
+           "line", np.array( [  np.array(i) for i in mesh.cells_dict["line"] ] )]
+#print(n2_dict)
+n3_dict = [("ee", np.array([[1,2],[2,1]]))]
+#cells = [("vertex", np.array([[i,] for i in range(len(points)])))]
+
+'''
+print(np.array(mesh.points))
+filename = os.path.join(dirname, "results/tower_motion.xdmf")
+with meshio.xdmf.TimeSeriesWriter(filename) as writer:
+    writer.write_points_cells(np.array(mesh.points),  n2_dict)
+    for t in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]:
+        writer.write_data(t, point_data={"disp": t*np.array(displacements)[0:3].T})
 
 #print(displacements)
 # SAVE RESULTS
@@ -129,3 +145,49 @@ res_mesh = meshio.Mesh(
 res_mesh.write(os.path.join(dirname,"results/tower_res.vtk"),  # str, os.PathLike, or buffer/open file
     # file_format="vtk",  # optional if first argument is a path; inferred from extension
 )
+
+'''
+
+
+
+import vtk
+
+number_of_steps = 20
+my_datasets = []
+for i in range(number_of_steps):
+  my_vtk_dataset = vtk.vtkUnstructuredGrid()
+  points = vtk.vtkPoints()
+  for id in range(numberNodes):
+    points.InsertPoint(id, [xx[id], yy[id], zz[id]])
+
+  my_vtk_dataset.SetPoints(points)  
+  my_vtk_dataset.Allocate(numberElements)
+  for id in range(numberElements):
+    point_ids = LineElementNodesIds[id]
+    my_vtk_dataset.InsertNextCell(vtk.VTK_LINE, 2, point_ids )
+
+  array = vtk.vtkDoubleArray()
+  array.SetNumberOfComponents(3)
+  array.SetNumberOfTuples(numberNodes)
+  array.SetName('Displacements')
+  
+  for id in range(numberNodes):
+    values = i* np.array(displacements)[0:3].T[id]
+    array.SetTuple(id, values)
+  
+  my_vtk_dataset.GetPointData().AddArray(array)
+  #my_datasets.append(my_vtk_dataset)
+  filename = os.path.join(dirname, f"results/transient/output_00{i}.vtu")
+  writer = vtk.vtkXMLUnstructuredGridWriter()
+  input_dataset = my_vtk_dataset
+  writer.SetInputData(input_dataset)
+  writer.SetFileName(filename)
+  writer.Write()
+
+'''
+writer.Start()
+for i in range(number_of_steps):
+  input_dataset.ShallowCopy(my_datasets[i])
+  writer.WriteNextTime(i)
+writer.Stop()
+'''

@@ -130,7 +130,6 @@ def formStiffness3D_EBbeam_2pt(GDof,numberElements, elementNodes ,numberNodes, n
         #print(stiffness)
     return stiffness, force
 
-
 def solution(GDof, prescribedDof, pointLoad,  stiffness, force): 
     # activeDof = np.setdiff1d(np.arange(GDof), prescribedDof)
     # Exclude prescribed DOFs, solve the system
@@ -168,3 +167,6 @@ def solution(GDof, prescribedDof, pointLoad,  stiffness, force):
     disp_6 = disp[int(5*GDof/6) : int(6*GDof/6)]
     
     return [disp_1, disp_2, disp_3, disp_4, disp_5, disp_6]
+
+
+

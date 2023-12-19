@@ -1,0 +1,1 @@
+<Xdmf Version="3.0"><Domain><Grid Name="TimeSeries_meshio" GridType="Collection" CollectionType="Temporal" /><Grid Name="mesh" GridType="Uniform"><Geometry GeometryType="XYZ"><DataItem DataType="Float" Dimensions="3 3" Format="HDF" Precision="8">tower_motion.h5:/data0</DataItem></Geometry><Topology TopologyType="Mixed" NumberOfElements="4" /></Grid></Domain></Xdmf>
