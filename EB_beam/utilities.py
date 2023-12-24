@@ -11,12 +11,15 @@ def extractNodeIdsFromCells( CellNodes ):
     NodesIdsUnique = list(set(NodeIds))
     return NodesIdsUnique
 
+
 def formStiffness3D_EBbeam_2pt(GDof,numberElements, elementNodes ,numberNodes, nodeCoordinates, mat_data):
+    
     # global
     stiffness = np.zeros( (GDof, GDof))
+    mass = np.zeros( (GDof, GDof))
     force = np.zeros( (GDof,1) )
     
-    E, G, A, Iy, Iz, J = mat_data
+    E, G, A, Iy, Iz, J, rho = mat_data
     
     
     for e in range(numberElements):
@@ -67,7 +70,6 @@ def formStiffness3D_EBbeam_2pt(GDof,numberElements, elementNodes ,numberNodes, n
         
         R = np.block([[first_block, zero], [zero, first_block ] ])
         #print(r)
-
                 
         k1 = E*A/L
         k2 = 12*E*Iz/(L*L*L)
@@ -79,7 +81,7 @@ def formStiffness3D_EBbeam_2pt(GDof,numberElements, elementNodes ,numberNodes, n
         k8 = 4*E*Iy/L 
         k9 = 2*E*Iy/L 
         k10 = G*J/L
-
+        rx2 = (Iy+Iz)/A
         '''                    
         LocalK = np.array( [[k1, 0, 0, 0, 0, 0, -k1, 0, 0, 0, 0, 0], \
                             [0, k2, 0, 0, 0, k3, 0, -k2, 0, 0, 0, k3], \
@@ -108,7 +110,21 @@ def formStiffness3D_EBbeam_2pt(GDof,numberElements, elementNodes ,numberNodes, n
                             [0, k3, 0, 0, 0, k4, 0, -k3, 0, 0, 0, k5], \
                             [0, k3, 0, 0, 0, k5, 0, -k3, 0, 0, 0, k4]  ])
         '''
-        LocalK = np.array( [[k1, -k1, 0, 0,    0,    0,    0, 0,     0, 0,   0, 0], \
+        LocalK = rho*A*L/420*np.array( [[140, 70, 0, 0,    0,    0,    0, 0,     0, 0,   0, 0], \
+                    [70, 140, 0, 0,    0,    0,    0, 0,     0, 0,   0, 0], \
+                    [0, 0,    156,54, 0,    0,    0, 0,     0, 0,  22*L, -13*L], \
+                    [0, 0,   54,  156, 0,    0,    0, 0,     0, 0,  13*L, -22*L], \
+                    [0, 0,     0, 0,   156, 54,    0, 0,   -22*L, 13*L, 0, 0], \
+                    [0, 0,     0, 0,    54, 156,    0, 0,    -13*L, 22*L,  0, 0], \
+                    [0, 0,     0, 0,    0,   0,  140*rx2, 70*rx2, 0,   0, 0, 0], \
+                    [0, 0,     0, 0,    0,   0,  70*rx2,  140*rx2, 0,   0, 0, 0], \
+                    [0, 0,     0, 0,   -22*L,  -13*L,    0,    0, 4*L**2, -3*L**2, 0, 0], \
+                    [0, 0,     0, 0,    13*L,  22*L,    0,    0, -3*L**2, 4*L**2, 0, 0], \
+                    [0, 0,    22*L, 13*L,    0,   0,    0,    0,  0,  0, 4*L**2, -3*L**2], \
+                    [0, 0,    -13*L, -22*L,    0,   0,    0,    0,  0,  0,-3*L**2, 4*L**2]  ])
+
+
+        LocalMass = np.array( [[k1, -k1,  0, 0,  0,  0,  0, 0,  0, 0,  0, 0], \
                     [-k1, k1, 0, 0,    0,    0,    0, 0,     0, 0,   0, 0], \
                     [0, 0,    k2, -k2, 0,    0,    0, 0,     0, 0,   k3, k3], \
                     [0, 0,   -k2,  k2, 0,    0,    0, 0,     0, 0,  -k3, -k3], \
@@ -119,16 +135,17 @@ def formStiffness3D_EBbeam_2pt(GDof,numberElements, elementNodes ,numberNodes, n
                     [0, 0,     0, 0,   - k7,  k7,    0,    0, k8, k9, 0, 0], \
                     [0, 0,     0, 0,   - k7,  k7,    0,    0, k9, k8, 0, 0], \
                     [0, 0,    k3, -k3,    0,   0,    0,    0,  0,  0, k4, k5], \
-                    [0, 0,    k3, -k3,    0,   0,    0,    0,  0,  0, k5, k4]  ])
-                            
+                    [0, 0,    k3, -k3,    0,   0,    0,    0,  0,  0, k5, k4]  ])                
 
         add =  R.T @ (LocalK) @ R
+        add_m =  R.T @ (LocalMass) @ R
         #print(add)
         for i in range(elementDof.size):
             for j in range(elementDof.size):
-                stiffness[ int(elementDof[i]), int(elementDof[j]) ] += add[i,j]        
+                stiffness[ int(elementDof[i]), int(elementDof[j]) ] += add[i,j]
+                mass[ int(elementDof[i]), int(elementDof[j]) ] += add_m[i,j]        
         #print(stiffness)
-    return stiffness, force
+    return stiffness, force, mass
 
 def solution(GDof, prescribedDof, pointLoad,  stiffness, force): 
     # activeDof = np.setdiff1d(np.arange(GDof), prescribedDof)
@@ -169,4 +186,42 @@ def solution(GDof, prescribedDof, pointLoad,  stiffness, force):
     return [disp_1, disp_2, disp_3, disp_4, disp_5, disp_6]
 
 
-
+def solution_eigen(GDof, prescribedDof, stiffness, mass, num_modes): 
+    # activeDof = np.setdiff1d(np.arange(GDof), prescribedDof)
+    # Exclude prescribed DOFs, solve the system
+    '''
+    for i in prescribedDof:
+        stiffness[i,:] = 0.0
+        stiffness[i, i] = 1.0
+        mass[i,:] = 0.0
+        mass[:,i] = 0.0
+    
+    # check for zero rows
+    for i in range(GDof):
+        is_all_zero = np.all((stiffness[i,:] == 0))
+        if is_all_zero:
+            stiffness[i,i] = 1
+            mass[i,i] = 0
+    '''
+    allDof = np.arange(GDof)
+    activeDof = np.setdiff1d(allDof, prescribedDof)
+    start = time.time()
+    
+    eigs, modes = sparse.linalg.eigsh(stiffness[activeDof,:][:, activeDof], num_modes, mass[activeDof,:][:, activeDof])
+    stop = time.time()
+    print("Время расчёта:", stop-start) 
+    #print(modes)
+    my_modes = []
+    full_u = np.zeros((num_modes, GDof))
+    for k in range(num_modes):
+        full_u[k, activeDof] = modes[:,k]
+        disp_1 = full_u[k, : int(GDof/6)]
+        disp_2 = full_u[k,int(GDof/6) : int(2*GDof/6)]
+        disp_3 = full_u[k,int(2*GDof/6) : int(3*GDof/6)]
+        disp_4 = full_u[k,int(3*GDof/6) : int(4*GDof/6)]
+        disp_5 = full_u[k,int(4*GDof/6) : int(5*GDof/6)]
+        disp_6 = full_u[k,int(5*GDof/6) : int(6*GDof/6)]
+        my_modes.append([disp_1, disp_2, disp_3, disp_4, disp_5, disp_6])
+   
+    #print(my_modes)
+    return eigs, my_modes

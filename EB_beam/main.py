@@ -96,10 +96,11 @@ loads = [LoadPointsIds]
 print(bcs, loads)
 
 # MATERIAL PARAMETERS
-E = 1; A = 1; EA = E*A;  Iy = 1; Iz = 1; G = 0.5; J = 1; 
-mat_data = np.array([E, G, A, Iy, Iz, J])
-stiffness, force = utilities.formStiffness3D_EBbeam_2pt(GDof,numberElements, LineElementNodesIds,numberNodes, nodeCoordinates, mat_data)
+E = 1; A = 1; EA = E*A;  Iy = 1; Iz = 1; G = 0.5; J = 1;  rho = 1 
+mat_data = np.array([E, G, A, Iy, Iz, J, rho])
 
+stiffness, force, mass = utilities.formStiffness3D_EBbeam_2pt(GDof,numberElements, LineElementNodesIds,numberNodes, nodeCoordinates, mat_data)
+#print(mass)
 #BCs
 prescribedUx1= np.array(LeftNodeIds)
 prescribedUy1= np.array(LeftNodeIds) + numberNodes
@@ -114,16 +115,51 @@ prescribedDof = [prescribedUx1, prescribedUy1,   prescribedUz1, prescribedRx1, p
 prescribedPoint1Fz = np.array(LoadPointsIds)  + 2*numberNodes
 pointLoad = [ [prescribedPoint1Fz, 1] ]
 
-displacements = utilities.solution(GDof, prescribedDof, pointLoad, stiffness, force)
 
-new_dict = mesh.cells_dict
-new_dict.pop('vertex')
+#displacements = utilities.solution(GDof, prescribedDof, pointLoad, stiffness, force)
+num_modes = 10
+eigs, my_modes = utilities.solution_eigen(GDof, prescribedDof, stiffness, mass, num_modes)
 
-n2_dict = ["vertex", np.array( [  np.array(i) for i in mesh.cells_dict["vertex"] ] ), \
-           "line", np.array( [  np.array(i) for i in mesh.cells_dict["line"] ] )]
-#print(n2_dict)
-n3_dict = [("ee", np.array([[1,2],[2,1]]))]
-#cells = [("vertex", np.array([[i,] for i in range(len(points)])))]
+print("Собственные значения: ", eigs)
+omega = np.sqrt(eigs)
+print("Частота колебаний: ", omega)
+
+import vtk
+
+number_of_steps = 40
+step = 2*math.pi / number_of_steps
+my_datasets = []
+for i in range(number_of_steps):
+  my_vtk_dataset = vtk.vtkUnstructuredGrid()
+  points = vtk.vtkPoints()
+  for id in range(numberNodes):
+    points.InsertPoint(id, [xx[id], yy[id], zz[id]])
+
+  my_vtk_dataset.SetPoints(points)  
+  my_vtk_dataset.Allocate(numberElements)
+  for id in range(numberElements):
+    point_ids = LineElementNodesIds[id]
+    my_vtk_dataset.InsertNextCell(vtk.VTK_LINE, 2, point_ids )
+
+  for mode_index in range(num_modes):
+    array = vtk.vtkDoubleArray()
+    array.SetNumberOfComponents(3)
+    array.SetNumberOfTuples(numberNodes)
+    array.SetName(f'Frequency={omega[mode_index]}')
+    for id in range(numberNodes):
+      values = np.array(my_modes[mode_index])[0:3].T[id] * math.sin(i*step)
+      array.SetTuple(id, values)
+    my_vtk_dataset.GetPointData().AddArray(array)
+  
+  filename = os.path.join(dirname, f"results/transient/output_00{i}.vtu")
+  writer = vtk.vtkXMLUnstructuredGridWriter()
+  input_dataset = my_vtk_dataset
+  writer.SetInputData(input_dataset)
+  writer.SetFileName(filename)
+  writer.Write()
+
+
+
 
 '''
 print(np.array(mesh.points))
@@ -148,8 +184,9 @@ res_mesh.write(os.path.join(dirname,"results/tower_res.vtk"),  # str, os.PathLik
 
 '''
 
+## WRITE TIME DATA TO SEIRES OF FILES
 
-
+'''
 import vtk
 
 number_of_steps = 20
@@ -183,11 +220,4 @@ for i in range(number_of_steps):
   writer.SetInputData(input_dataset)
   writer.SetFileName(filename)
   writer.Write()
-
-'''
-writer.Start()
-for i in range(number_of_steps):
-  input_dataset.ShallowCopy(my_datasets[i])
-  writer.WriteNextTime(i)
-writer.Stop()
 '''

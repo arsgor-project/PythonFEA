@@ -106,6 +106,7 @@ print("stresses:", axial_stress)
 s_axial = np.reshape( axial_stress, (axial_stress.size, 1))
 null_vertex_data = np.zeros((mesh.cell_data_dict['CellEntityIds']['vertex'].size, 1))
 
+
 # SAVE RESULTS
 res_mesh = meshio.Mesh(
     mesh.points,
@@ -114,6 +115,7 @@ res_mesh = meshio.Mesh(
     point_data={ "deflection": np.array(displacements).T},
     cell_data={ "s_axial": [null_vertex_data, s_axial]}
 )
+
 
 res_mesh.write(os.path.join(dirname,"results/results_2DTruss_ex1.vtk"),  # str, os.PathLike, or buffer/open file
     # file_format="vtk",  # optional if first argument is a path; inferred from extension
