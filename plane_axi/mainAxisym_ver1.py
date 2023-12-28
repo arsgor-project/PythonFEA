@@ -300,7 +300,7 @@ def apply_pressure_load_on_line(f_vector, LineElemNodeIds, nodeCoords, traction_
 
 # Читаем сетку в vtk формате, внимательно следим за номерами, которые присвоены физическим группам (по умолчанию -1)
 dirname = os.path.dirname(__file__)
-mesh = meshio.read(os.path.join(dirname, 'mesh/axishell_quad.vtk'))   # string, os.PathLike, or a buffer/open file)
+mesh = meshio.read(os.path.join(dirname, 'mesh/caclulix_axi_test.vtk'))   # string, os.PathLike, or a buffer/open file)
 
 xx = mesh.points[: , 0]
 yy = mesh.points[: , 1]
@@ -331,12 +331,12 @@ LoadCellsIds  = []
 LineLoadElements = []
 # Идём по элементам типа line3 и выбираем те, значение которых равно нужным нам иднексам физическиз групп
 for i in range( len(mesh.cell_data_dict['CellEntityIds']['line3']) ):
-    if mesh.cell_data_dict['CellEntityIds']['line3'][i] == 5: #!!!
+    if mesh.cell_data_dict['CellEntityIds']['line3'][i] == 7: #!!!
         LeftCellsIds.append(i)
-    if mesh.cell_data_dict['CellEntityIds']['line3'][i] == 7: #!!! 
+    if mesh.cell_data_dict['CellEntityIds']['line3'][i] == 6: #!!! 
         LoadCellsIds.append(i)
         LineLoadElements.append(LineElementNodesIds[i])
-    if mesh.cell_data_dict['CellEntityIds']['line3'][i] == 6: #!!! 
+    if mesh.cell_data_dict['CellEntityIds']['line3'][i] == 8: #!!! 
         RightCellsIds.append(i)
 
 LeftNodeIds  = np.array(extractNodeIdsFromCells(LineElementNodesIds[LeftCellsIds])) 
@@ -362,7 +362,7 @@ C = np.array([ [lam+2*mu, lam, lam, 0], [lam, lam+2*mu, lam,  0 ], [lam, lam, la
 
 
 # LOAD CARD
-pres = -1
+pres = 1
 
 # PLOT BLOCK
 # drawing mesh with physical groups
@@ -376,8 +376,8 @@ print(GDof)
 stiffness = formStiffnessAxisymmetric2D(GDof, numberElements, QuadElementNodesIds, numberNodes, nodeCoords, C, th, "third")
 #print(stiffness)
 
-prescribedDofUr = np.array(LeftNodeIds)
-prescribedDofSymmetry = np.array(RightNodeIds) + numberNodes 
+prescribedDofUr = np.array(RightNodeIds)
+prescribedDofSymmetry = np.array(LeftNodeIds) + numberNodes 
 prescribedDofUz = np.array(LeftNodeIds) + numberNodes 
 #prescribedDofUz2 = np.array(LoadNodeIds) + numberNodes
 prescribedDof = [prescribedDofUr, prescribedDofSymmetry, 0, 0 + numberNodes ]
@@ -425,6 +425,6 @@ res_mesh = meshio.Mesh(
     # Each item in cell data must match the cells array
 )
 
-res_mesh.write(os.path.join(dirname,"results/resultsAxi.vtk"),  # str, os.PathLike, or buffer/open file
+res_mesh.write(os.path.join(dirname,"results/res_caclulix_axi_test.vtk"),  # str, os.PathLike, or buffer/open file
     # file_format="vtk",  # optional if first argument is a path; inferred from extension
 )
